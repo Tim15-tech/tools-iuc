@@ -1,0 +1,22 @@
+<macros>
+     <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="1.4.1">bamsurgeon</requirement>
+            <yield/>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="bibtex">
+        @Article{
+        author = {Ewing, Adam D.},
+        year = {2015},
+        title = {Combining tumor genome simulation with crowdsourcing to benchmark somatic single-nucleotide-variant detection},
+        journal= {Nature Methods}
+        url = {https://github.com/adamewing/bamsurgeon},
+        }
+        </citation>
+            <yield />
+        </citations>
+    </xml>
+</macros>

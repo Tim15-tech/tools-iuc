@@ -1,0 +1,328 @@
+<tool id="bamsurgeon" name="Add SNVs, SVs and Indels with bamsurgeon" version="1.4.1" python_template_version="3.12" profile="21.05">
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements" />
+    <command detect_errors="exit_code"><![CDATA[
+    ${mutationMode}.py -v $VARFILENAME -f $BAMFILENAME -r $REFFASTA -o $OUTBAMFILE
+    $SNVFRAC_TRUE $SNVFRAC $MUTFRAC_TRUE $MUTFRAC $NUMSNVS_TRUE $NUMSNVS
+    $CNVFILE_TRUE $CNVFILE
+    $MAXLIBSIZE_TRUE $MAXLIBSIZE $KMERSIZE_TRUE $KMERSIZE $SVFRAC_TRUE $SVFRAC $require_exact $MINCTGLEN_TRUE $MINCTGLEN $MAXMUTS_TRUE $MAXMUTS
+    $COVERDIFF_TRUE $COVERDIFF $HAPLOSIZE_TRUE $HAPLOSIZE
+    $DONORBAM_TRUE $DONORBAM $ISMEAN_TRUE $ISMEAN $ISSD_TRUE $ISSD $SIMERR_TRUE $SIMERR
+    $PROCS_TRUE $PROCS
+    $PICARDJAR_TRUE $PICARDJAR $MINDEPTH_TRUE $MINDEPTH
+    $MAXDEPTH_TRUE $MAXDEPTH $MINMUTREADS_TRUE $MINMUTREADS
+    $AVOIDREADS_TRUE $AVOIDREADS $nomut $det
+    $ignoresnps
+    $ignoreref
+    $force $insane $single $MAXOPEN_TRUE $MAXOPEN $requirepaired
+    $tagreads
+    $skipmerge $ignorepileup
+    $INSLIB_TRUE $INSLIB
+    $ALIGNER_TRUE $ALIGNER $ALIGNOPTS_TRUE $ALIGNOPTS 
+    $tagreads $skipmerge 
+    $ignorepileup
+    $keepsecondary $debug
+    $TMPDIR_TRUE $TMPDIR $SEED_TRUE $SEED 
+    $allowN
+    $vcf
+    ]]></command>
+    <!-- python3 -O $mutationMode -p 1 -v test_data/test_sv.txt -f test_data/testregion_realign.bam -r 
+    test_data/Homo_sapiens_chr22_assembly19.fasta -o test_data/testregion_sv_mut.bam aligner mem 
+    keepsecondary seed 1234 inslib test_data/test_inslib.fa -->
+    <configfiles>
+      <configfile filename="config.yml">
+      </configfile>
+    </configfiles>
+    <inputs>
+        <param format="var" name="VARFILENAME" type="data" label="Target regions to try and add a SNV, as BED/whitespace-delimited target regions for SV spike-in/"/>
+        <param format="bam" name="BAMFILENAME" type="data" label="sam/bam file from which to obtain reads"/>
+        <param format="fa" name="REFFASTA" type="data" label="reference genome, fasta indexed with bwa index and samtools faidx"/>
+        <param format="bam" name="OUTBAMFILE" type="text" label=".bam file name for output"/>
+        <param name="CNVFILE_TRUE" type="boolean" label="tabix-indexed list of genome-wide absolute copy number values (e.g. default is 2 alleles = no change) (ALL)" optional="False" checked="False" falsevalue="" truevalue="-c"/>
+        <param name="CNVFILE" type="integer" label="Enter integer value if above is YES (ALL)" optional="True" value=""/>
+        <param name="PROCS_TRUE" type="boolean" label="split into multiple processes (default is 1) (ALL)" optional="False" checked="False" falsevalue="" truevalue="-p"/>
+        <param name="PROCS" type="integer" label="Enter integer value if above is YES (ALL)" optional="True" value=""/>
+        <param name="tagreads" type="boolean" label="add BS tag to altered reads (ALL)" optional="False" checked="False" falsevalue="" truevalue="--tagreads"/>
+        <param name="skipmerge" type="boolean" label="final output is tmp file to be merged (ALL)" optional="False" checked="False" falsevalue="" truevalue="--skipmerge"/>
+        <conditional name="inslibCond">
+            <param name="INSLIB_TRUE" type="select" label="FASTA file containing library of possible insertions, use INS RND instead of INS filename to pick one (ALL)" optional="False">
+                <option value=" " selected="True">Skip</option>
+                <option value="--inslib">Use inslib</option>
+              </param>
+              <when value=" ">
+                <param name="INSLIB" type="text" label="Skip-value was choosen, no further action required" optional="True" value=" "/>
+              </when>
+              <when value="--inslib">
+                <param format="fasta" name="INSLIB" type="data" label="FASTA file containing library of possible insertions, use INS RND instead of INS filename to pick one (ALL)" optional="True"/>
+              </when>
+          <!--this might get complicated..or I just deliver the picard-folder? How to enable both options to upload or use uploaded? Maybe via a selecet again-->
+        </conditional>
+        <param name="ALIGNER_TRUE" type="boolean" label="supported aligners: backtrack,mem,novoalign,gsnap,STAR,bowtie2,tmap,bwakit (ALL)" optional="False" checked="False" falsevalue="" truevalue="--aligner"/>
+        <conditional name="ALIGNERCond">
+          <param name="ALIGNER" type="select" label="Choose an option if above is YES (ALL)" optional="False" value="">
+              <option value=" " selected="True">Skip</option>
+              <option value="backtrack">Use backtrack (default)</option>
+              <option value="mem">Use mem</option>
+              <option value="novoalign">Use novoalign</option>
+              <option value="gsnap">Use gsnap</option>
+              <option value="STAR">Use STAR</option>
+              <option value="bowtie2">Use bowtie2</option>
+              <option value="tmap">Use tmap</option>
+              <option value="bwakit">Use bwakit</option>
+            </param>
+            <when value=" ">
+              <param name="ALIGNER" type="text" label="Skip-value was choosen" optional="True" value=" "/>
+            </when>
+            <when value="backtrack">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="backtrack"/>
+            </when>
+            <when value="mem">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="mem"/>
+            </when>
+            <when value="novoalign">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="novoalign"/>
+            </when>
+            <when value="gsnap">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="gsnap"/>
+            </when>
+            <when value="STAR">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="STAR"/>
+            </when>
+            <when value="bowtie2">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="bowtie2"/>
+            </when>
+            <when value="tmap">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="tmap"/>
+            </when>
+            <when value="bwakit">
+              <param name="ALIGNER" type="text" label="Leave unchanged" optional="True" value="bwakit"/>
+            </when>
+          </conditional>
+        <param name="ALIGNOPTS_TRUE" type="boolean" label="aligner-specific options (ALL)" optional="False" checked="False" falsevalue="" truevalue="--alignopts"/>
+        <param name="ALIGNOPTS" type="text" label="Enter aligner specific options as comma delimited list of option1:value1,option2:value2,... (ALL)" optional="True" value=""/>
+        <param name="TMPDIR_TRUE" type="boolean" label="temporary directory (ALL)" optional="False" checked="False" falsevalue="" truevalue="--tmpdir"/>
+        <param name="TMPDIR" type="text" label="Enter temporary directory (ALL)" optional="True" value=""/>
+        <param name="SEED_TRUE" type="boolean" label="seed random number generation (ALL)" optional="False" checked="False" falsevalue="" truevalue="--seed"/>
+        <param name="SEED" type="integer" label="Enter integer value if above is YES (ALL)" optional="True" value=""/>
+        <param name="vcf" type="text" label="output path for the VCF file (ALL)" optional="True" value=""/>
+      <conditional name="Mode">
+        <param name="mutationMode" type="select" label="Choose addsnv, addsv or addindel" optional="False">
+          <option value="addsnv">Add SNVs</option>
+          <option value="addsv">Add SVs</option>
+          <option value="addindel">Add Indels</option>
+        </param>
+        <when value="addsnv">
+          <param name="SNVFRAC_TRUE" type="boolean" label="maximum allowable linked SNP MAF (for avoiding haplotypes) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-s"/>
+          <param name="SNVFRAC" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="MUTFRAC_TRUE" type="boolean" label="allelic fraction at which to make SNVs (default is 0.5) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-m"/>
+          <param name="MUTFRAC" type="float" label="Enter float value if above is YES  (INSNV)" optional="True" value=""/>
+          <param name="NUMSNVS_TRUE" type="boolean" label="maximum number of mutations to try (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-n"/>
+          <param name="NUMSNVS" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="COVERDIFF_TRUE" type="boolean" label="allow difference in input and output coverage (default is 0.9) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-d"/>
+          <param name="COVERDIFF" type="float" label="Enter float value if above is YES  (INSNV)" optional="True" value=""/>
+          <param name="HAPLOSIZE_TRUE" type="boolean" label="haplotype size (default is 0) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-z"/>
+          <param name="HAPLOSIZE" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <conditional name="picardCond">
+              <param name="PICARDJAR_TRUE" type="select" label="path to picard.jar, required for most aligners (INSNV)" optional="False">
+                <option value=" " selected="True">Skip</option>
+                <option value="--picardjar">Use picard</option>
+              </param>
+              <when value=" ">
+                <param name="PICARDJAR" type="text" label="Leave unchanged" optional="True" value=" "/>
+              </when>
+              <when value="--picardjar">
+                <param format="jar" name="PICARDJAR" type="data" label="(INSNV)" optional="True"/>
+              </when>
+          <!--this might get complicated..or I just deliver the picard-folder? How to enable both options to upload or use uploaded? Maybe via a selecet again-->
+          </conditional> 
+          <param name="MINDEPTH_TRUE" type="boolean" label="minimum read depth to make mutation (default is 10) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--mindepth"/>
+          <param name="MINDEPTH" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="MAXDEPTH_TRUE" type="boolean" label="maximum read depth to make mutation (default is 2000) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--maxdepth"/>
+          <param name="MAXDEPTH" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="MINMUTREADS_TRUE" type="boolean" label="minimum number of mutated reads to output per site (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--minmutreads"/>
+          <param name="MINMUTREADS" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <conditional name="avoidreadsCond">
+              <param name="AVOIDREADS_TRUE" type="select" label="file of read names to avoid (mutations will be skipped if overlap) (INSNV)" optional="False">
+                <option value=" " selected="True">Skip</option>
+                <option value="--avoidreads">Avoid reads by using a file</option>
+              </param>
+              <when value=" ">
+                <param name="AVOIDREADS" type="text" label="Leave unchanged" optional="True" value=" "/>
+              </when>
+              <when value="--avoidreads">
+                <param format="txt" name="AVOIDREADS" type="data" label="file of read names to avoid (mutations will be skipped if overlap) (INSNV)" optional="True"/> <!--format-change?-->
+              </when>
+          <!--this might get complicated..or I just deliver the picard-folder? How to enable both options to upload or use uploaded? Maybe via a selecet again-->
+          </conditional>
+          <param name="nomut" type="boolean" label="dry run (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--nomut"/>
+          <param name="det" type="boolean" label="deterministic base changes: make transitions only (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--det"/>
+          <param name="ignoresnps" type="boolean" label="make mutations even if there are non-reference alleles sharing the relevant reads (SNV)" optional="False" checked="False" falsevalue="" truevalue="--ignoresnps"/>
+          <param name="ignoreref" type="boolean" label="make mutations even if the mutation is back to the reference allele (SNV)" optional="False" checked="False" falsevalue="" truevalue="--ignoreref"/>
+          <param name="force" type="boolean" label="force mutation to happen regardless of nearby SNP or low coverage (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--force"/>
+          <param name="insane" type="boolean" label="ignore sanity check enforcing input read count = output read count in realignment (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--insane"/>
+          <param name="single" type="boolean" label="input BAM is simgle-ended (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--single"/>
+          <param name="MAXOPEN_TRUE" type="boolean" label="maximum number of open files during merge (default is 1000) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--maxopen"/>
+          <param name="MAXOPEN" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="requirepaired" type="boolean" label="skip mutations if unpaired reads are present (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--requirerepaired"/>
+        </when>
+        <when value="addsv">
+          <param name="MAXLIBSIZE_TRUE" type="boolean" label="maximum fragment length of seq. library (SV)" optional="False" checked="False" falsevalue="" truevalue="-l"/>
+          <param name="MAXLIBSIZE" type="integer" label="Enter integer value if above is YES (SV)" optional="True" value=""/>
+          <param name="KMERSIZE_TRUE" type="boolean" label="kmer size for assembly (default is 31) (SV)" optional="False" checked="False" falsevalue="" truevalue="-k"/>
+          <param name="KMERSIZE" type="integer" label="Enter integer value if above is YES (SV)" optional="True" value=""/>
+          <param name="SVFRAC_TRUE" type="boolean" label="SVFRAC (default is 1) (SV)" optional="False" checked="False" falsevalue="" truevalue="-s"/>
+          <param name="SVFRAC" type="integer" label="Enter integer value if above is YES (SV)" optional="True" value=""/>
+          <param name="require_exact" type="boolean" label="drop mutation if breakpoints cannot be made exactly as input (SV)" optional="False" checked="False" falsevalue="" truevalue="--require-exact"/>
+          <param name="MINCTGLEN_TRUE" type="boolean" label="minimum length for contig generation, also used to pad assembly (default is 4000) (SV)" optional="False" checked="False" falsevalue="" truevalue="--minctglen"/>
+          <param name="MINCTGLEN" type="integer" label="Enter integer value if above is YES (SV)" optional="True" value=""/>
+          <param name="MAXMUTS_TRUE" type="boolean" label="maximum number of mutations to make (SV)" optional="False" checked="False" falsevalue="" truevalue="-n"/>
+          <param name="MAXMUTS" type="integer" label="Enter integer value if above is YES (SV)" optional="True" value="" />
+          <conditional name="donorbamCond">
+            <param name="DONORBAM_TRUE" type="select" label="bam file for donor reads if using BIGDUP mutations (SV)" optional="False">
+                <option value=" " selected="True">Skip</option>
+                <option value="--donorbam">Use donorbam</option>
+              </param>
+              <when value=" ">
+                <param name="DONORBAM" type="text" label="no further action required" optional="True" value=" "/>
+              </when>
+              <when value="--donorbam">
+                <param format="bam" name="DONORBAM" type="data" label="Donorbam-file (INSNV)" optional="True"/>
+              </when>
+          <!--this might get complicated..or I just deliver the picard-folder? How to enable both options to upload or use uploaded? Maybe via a selecet again-->
+          </conditional> 
+          <param name="ISMEAN_TRUE" type="boolean" label="mean insert size (default = estimate from region) (SV)" optional="False" checked="False" falsevalue="" truevalue="--ismean"/>
+          <param name="ISMEAN" type="float" label="Enter float value if above is YES (SV)" optional="True" value=""/>
+          <param name="ISSD_TRUE" type="boolean" label="insert size standard deviation (default = estimate from region)(SV)" optional="False" checked="False" falsevalue="" truevalue="--issd"/>
+          <param name="ISSD" type="float" label="Enter float value if above is YES (SV)" optional="True" value=""/>
+          <param name="SIMERR_TRUE" type="boolean" label="error rate for wgsim-generated reads (SV)" optional="False" checked="False" falsevalue="" truevalue="--simerr"/>
+          <param name="SIMERR" type="float" label="Enter float value if above is YES (SV)" optional="True" value=""/>
+          <param name="ignorepileup" type="boolean" label="do not check pileup depth in mutation regions (INDELSV)" optional="False" checked="False" falsevalue="" truevalue="--ignorepileup"/>
+          <param name="keepsecondary" type="boolean" label="keep secondary reads in final BAM (SV)" optional="False" checked="False" falsevalue="" truevalue="--keepsecondary"/>
+          <param name="debug" type="boolean" label="output read tracking info to debug file, retain all intermediates (SV)" optional="False" checked="False" falsevalue="" truevalue="--debug"/>
+          <param name="allowN" type="boolean" label="allow N in contigs, replace with A and warn user (default: drop mutation) (SV)" optional="False" checked="False" falsevalue="" truevalue="--allowN"/>
+        </when>
+        <when value="addindel">
+          <param name="SNVFRAC_TRUE" type="boolean" label="maximum allowable linked SNP MAF (for avoiding haplotypes) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-s"/>
+          <param name="SNVFRAC" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="MUTFRAC_TRUE" type="boolean" label="allelic fraction at which to make SNVs (default is 0.5) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-m"/>
+          <param name="MUTFRAC" type="float" label="Enter float value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="NUMSNVS_TRUE" type="boolean" label="maximum number of mutations to try (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-n"/>
+          <param name="NUMSNVS" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="COVERDIFF_TRUE" type="boolean" label="allow difference in input and output coverage (default is 0.9) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-d"/>
+          <param name="COVERDIFF" type="float" label="Enter float value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="HAPLOSIZE_TRUE" type="boolean" label="haplotype size (default is 0) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="-z"/>
+          <param name="HAPLOSIZE" type="integer" label="haplotype size (INSNV)" optional="True" value=""/>
+          <conditional name="picardCond">
+              <param name="PICARDJAR_TRUE" type="select" label="path to picard.jar, required for most aligners (INSNV)" optional="False">
+                <option value=" " selected="True">Skip</option>
+                <option value="--picardjar">Use picard</option>
+              </param>
+              <when value=" ">
+                <param name="PICARDJAR" type="text" label="Leave unchanged" optional="True" value=" "/>
+              </when>
+              <when value="--picardjar">
+                <param format="jar" name="PICARDJAR" type="data" label="(INSNV)" optional="True"/>
+              </when>
+          <!--this might get complicated..or I just deliver the picard-folder? How to enable both options to upload or use uploaded? Maybe via a selecet again-->
+          </conditional> 
+          <param name="MINDEPTH_TRUE" type="boolean" label="minimum read depth to make mutation (default is 10) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--mindepth"/>
+          <param name="MINDEPTH" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="MAXDEPTH_TRUE" type="boolean" label="maximum read depth to make mutation (default is 2000) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--maxdepth"/>
+          <param name="MAXDEPTH" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="MINMUTREADS_TRUE" type="boolean" label="minimum number of mutated reads to output per site (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--minmutreads"/>
+          <param name="MINMUTREADS" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <conditional name="avoidreadsCond">
+              <param name="AVOIDREADS_TRUE" type="select" label="file of read names to avoid (mutations will be skipped if overlap) (INSNV)" optional="False">
+                <option value=" " selected="True">Skip</option>
+                <option value="--avoidreads">Avoid reads by using a file</option>
+              </param>
+              <when value=" ">
+                <param name="AVOIDREADS" type="text" label="Leave unchanged" optional="True" value=" "/>
+              </when>
+              <when value="--avoidreads">
+                <param format="txt" name="AVOIDREADS" type="data" label="file of read names to avoid (mutations will be skipped if overlap) (INSNV)" optional="True"/>
+              </when>
+          <!--this might get complicated..or I just deliver the picard-folder? How to enable both options to upload or use uploaded? Maybe via a selecet again-->
+          </conditional>
+          <param name="nomut" type="boolean" label="dry run (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--nomut"/>
+          <param name="det" type="boolean" label="deterministic base changes: make transitions only (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--det"/>
+          <param name="force" type="boolean" label="force mutation to happen regardless of nearby SNP or low coverage (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--force"/>
+          <param name="insane" type="boolean" label="ignore sanity check enforcing input read count = output read count in realignment (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--insane"/>
+          <param name="single" type="boolean" label="input BAM is simgle-ended (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--single"/>
+          <param name="MAXOPEN_TRUE" type="boolean" label="maximum number of open files during merge (default is 1000) (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--maxopen"/>
+          <param name="MAXOPEN" type="integer" label="Enter integer value if above is YES (INSNV)" optional="True" value=""/>
+          <param name="requirepaired" type="boolean" label="skip mutations if unpaired reads are present (INSNV)" optional="False" checked="False" falsevalue="" truevalue="--requirerepaired"/>
+          <param name="ignorepileup" type="boolean" label="do not check pileup depth in mutation regions (INDELSV)" optional="False" checked="False" falsevalue="" truevalue="--ignorepileup"/>
+        </when>
+      </conditional>
+    </inputs>
+    <outputs>
+      <data name="bamOutput" format="bam" label="${OUTBAMFILE}.bam" from_work_dir="$__tool_directory__/${OUTBAMFILE}.bam" />
+      <!--bam in hte end of from work_dir correct or doubled with format= bam, also in neat-->
+    </outputs>
+    <tests>
+      <test>
+        <param name="mutationMode" value="addsv" />
+        <param name="VARFILENAME" value="test_sv.txt"/>
+        <param name="BAMFILENAME" value="testregion_realign.bam" />
+        <param name="REFFASTA" value="Homo_sapiens_chr22_assembly19.fasta" />
+        <param name="OUTBAMFILE" value="testregion_sv_mut" />
+        <param name="PROCS_TRUE" value="True" />
+        <param name="PROCS" value="1" />
+        <param name="PICARDJAR_TRUE" value=" " />
+        <param name="DONORBAM_TRUE" value=" " />
+        <param name="AVOIDREADS_TRUE" value=" " />
+        <param name="ALIGNER_TRUE" value="True" />
+        <param name="ALIGNER" value="mem" />
+        <param name="keepsecondary" value="True" />
+        <param name="SEED_TRUE" value="True"/>
+        <param name="SEED" value="1234" />
+        <param name="INSLIB_TRUE" value="--inslib" />
+        <param name="INSLIB" value="test_inslib.fa" />
+        <output name="bamOutput" file="$__tool_directory__/testregion_sv_mut.bam" />
+        <!-- python3 -O $mutationMode -p 1 -v test_data/test_sv.txt -f test_data/testregion_realign.bam -r 
+        test_data/Homo_sapiens_chr22_assembly19.fasta -o test_data/testregion_sv_mut.bam aligner mem 
+        keepsecondary seed 1234 inslib test_data/test_inslib.fa -->
+      </test>
+    </tests>
+    <help><![CDATA[
+    addsnv.py [-h] -v VARFILENAME -f BAMFILENAME -r REFFASTA -o OUTBAMFILE
+    [-s SNVFRAC] [-m MUTFRAC] [-n NUMSNVS] [-c CNVFILE]
+    [-d COVERDIFF] [-z HAPLOSIZE] [-p PROCS]
+    [--picardjar PICARDJAR] [--mindepth MINDEPTH]
+    [--maxdepth MAXDEPTH] [--minmutreads MINMUTREADS]
+    [--avoidreads AVOIDREADS] [--nomut] [--ignoresnps]
+    [--ignoreref] [--force] [--insane] [--single]
+    [--maxopen MAXOPEN] [--requirepaired] [--tagreads]
+    [--skipmerge] [--ignorepileup] [--aligner ALIGNER]
+    [--alignopts ALIGNOPTS] [--tmpdir TMPDIR] [--seed SEED] [--vcf]
+    
+    addindel.py [-h] -v VARFILENAME -f BAMFILENAME -r REFFASTA -o
+    OUTBAMFILE [-s SNVFRAC] [-m MUTFRAC] [-n NUMSNVS]
+    [-c CNVFILE] [-d COVERDIFF] [-p PROCS]
+    [--picardjar PICARDJAR] [--mindepth MINDEPTH]
+    [--maxdepth MAXDEPTH] [--minmutreads MINMUTREADS]
+    [--avoidreads AVOIDREADS] [--nomut] [--det] [--force]
+    [--insane] [--single] [--maxopen MAXOPEN] [--requirepaired]
+    [--aligner ALIGNER] [--alignopts ALIGNOPTS] [--tagreads]
+    [--skipmerge] [--ignorepileup] [--tmpdir TMPDIR]
+    [--seed SEED] [--vcf]
+
+    addsv.py [-h] -v VARFILENAME -f BAMFILENAME -r REFFASTA -o OUTBAMFILE
+    [-l MAXLIBSIZE] [-k KMERSIZE] [-s SVFRAC] [--require_exact]
+    [--minctglen MINCTGLEN] [-n MAXMUTS] [-c CNVFILE]
+    [--donorbam DONORBAM] [--ismean ISMEAN] [--issd ISSD]
+    [--simerr SIMERR] [-p PROCS] [--inslib INSLIB]
+    [--aligner ALIGNER] [--alignopts ALIGNOPTS] [--tagreads]
+    [--skipmerge] [--keepsecondary] [--debug] [--tmpdir TMPDIR]
+    [--seed SEED] [--allowN] [--vcf]
+
+    It is recommended to use addindel.py instead addsv.py for short insertions/deletions as less error prone
+
+    For further reading please go to:
+    https://github.com/adamewing/bamsurgeon/blob/master/doc/Manual.pdf
+    ]]></help>
+    <expand macro="citations" />
+</tool>
